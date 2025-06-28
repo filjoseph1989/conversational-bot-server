@@ -1,9 +1,6 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 import "dotenv/config";
-import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import cors from 'cors';
 
@@ -14,9 +11,6 @@ const corsOptions = {
   origin: process.env.CLIENT || 'http://localhost:5173',
 };
 app.use(cors(corsOptions));
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Creates a client
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -66,32 +60,13 @@ app.post('/api/generate', async (req, res) => {
     // Performs the text-to-speech request
     const [response] = await client.synthesizeSpeech(request);
 
-    // Write the binary audio content to a local file
-    const outputDir = path.join(__dirname, "outputs");
-
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    let i = 1;
-    let speechFile;
-
-    // Find the next available filename by incrementing the number
-    while (true) {
-      const paddedIndex = i.toString().padStart(2, "0");
-      speechFile = path.join(outputDir, `speech-${paddedIndex}.mp3`);
-      if (!fs.existsSync(speechFile)) {
-        break;
-      }
-      i++;
-    }
-
-    await fs.promises.writeFile(speechFile, response.audioContent, "binary");
-    console.log(`Audio content written to file: ${speechFile}`);
+    // Convert the binary audio content to a Base64 string to stream to the client
+    const audioContent = response.audioContent.toString("base64");
+    console.log("Audio content generated and encoded in Base64.");
 
     res.json({
-      message: "Audio generated successfully.",
-      filePath: speechFile,
+      text: text,
+      audioContent: audioContent,
     });
   } catch (error) {
     console.error('Error in /api/generate:', error);
