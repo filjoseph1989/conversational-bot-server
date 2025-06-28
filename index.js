@@ -5,9 +5,15 @@ import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 import "dotenv/config";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const corsOptions = {
+  origin: process.env.CLIENT || 'http://localhost:5173',
+};
+app.use(cors(corsOptions));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,21 +31,21 @@ app.get('/', (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   try {
-    // Destructure persona and user_prompt from the request body
-    const { persona, user_prompt } = req.body;
+    // Destructure persona and prompt from the request body
+    const { persona, prompt } = req.body;
 
     // Basic validation to ensure both fields are present
-    if (!persona || !user_prompt) {
+    if (!persona || !prompt) {
       return res.status(400).json({
-        error: 'Request body must contain both a "persona" and a "user_prompt" field.',
+        error: 'Request body must contain both a "persona" and a "prompt" field.',
       });
     }
 
-    const prompt = `Persona: ${persona}\n\nUser: ${user_prompt}`;
+    const textPrompt = `Persona: ${persona}\n\nUser: ${prompt}`;
 
     const genResponse = await genAI.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: prompt,
+      contents: textPrompt,
     });
 
     const text = genResponse.text;
