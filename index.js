@@ -48,9 +48,12 @@ app.post('/api/generate', async (req, res) => {
       contents: textPrompt,
     });
 
-    const text = genResponse.text;
 
-    console.log('Gemini Generated text:', text);
+    // Clean the text to remove markdown characters for better audio synthesis.
+    // This removes characters like *, #, _, ~, and ` that are used for formatting.
+    const text = genResponse.text.replace(/[*#_~`]/g, "");
+
+    console.log('Gemini Generated text (cleaned):', text);
     console.log("Generating speech from text using Google Cloud TTS...");
 
     // Construct the request
