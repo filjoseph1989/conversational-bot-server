@@ -11,7 +11,17 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/generate', (req, res) => {
-  res.json({ received: req.body });
+  // Destructure persona and user_prompt from the request body
+  const { persona, user_prompt } = req.body;
+
+  // Basic validation to ensure both fields are present
+  if (!persona || !user_prompt) {
+    return res.status(400).json({
+      error: 'Request body must contain both a "persona" and a "user_prompt" field.',
+    });
+  }
+
+  res.json({ persona, user_prompt });
 });
 
 app.listen(PORT, () => {
