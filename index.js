@@ -1,14 +1,21 @@
-const express = require('express');
-const { GoogleGenAI } = require('@google/genai');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-require('dotenv').config();
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { TextToSpeechClient } from "@google-cloud/text-to-speech";
+import "dotenv/config";
+import { fileURLToPath } from "url";
+import { GoogleGenAI } from "@google/genai";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-
-const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Creates a client
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const client = new TextToSpeechClient();
 
 app.use(express.json());
 
@@ -28,62 +35,54 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
-    if (!ELEVENLABS_API_KEY) {
-      console.error('ElevenLabs API key not configured.');
-      return res.status(500).json({ error: 'Server configuration error: ElevenLabs API key not set.' });
-    }
-
     const prompt = `Persona: ${persona}\n\nUser: ${user_prompt}`;
 
-    const response = await genAI.models.generateContent({
+    const genResponse = await genAI.models.generateContent({
       model: "gemini-2.0-flash",
       contents: prompt,
     });
 
-    const text = response.text;
-    const elevenLabsVoiceId = '21m00Tcm4TlvDq8ikWAM'; // A default voice ID, e.g., "Rachel"
-    const elevenLabsUrl = `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`;
+    const text = genResponse.text;
 
-    const elevenLabsResponse = await fetch(elevenLabsUrl, {
-      method: 'POST',
-      headers: {
-        Accept: 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_API_KEY,
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-        },
-      }),
-    });
+    console.log('Gemini Generated text:', text);
+    console.log("Generating speech from text using Google Cloud TTS...");
 
-    if (!elevenLabsResponse.ok) {
-      const errorData = await elevenLabsResponse.text();
-      console.error('ElevenLabs API Error:', errorData);
-      return res.status(elevenLabsResponse.status).json({ error: 'Failed to generate audio from ElevenLabs.' });
-    }
+    // Construct the request
+    const request = {
+      input: { text: text },
+      voice: { languageCode: "en-US", ssmlGender: "NEUTRAL" }, // Select the language and SSML voice gender (optional)
+      audioConfig: { audioEncoding: "MP3" }, // select the type of audio encoding
+    };
 
-    // res.setHeader('Content-Type', 'audio/mpeg');
-    // elevenLabsResponse.body.pipe(res);
+    // Performs the text-to-speech request
+    const [response] = await client.synthesizeSpeech(request);
 
-    const outputDir = path.join(__dirname, 'outputs');
+    // Write the binary audio content to a local file
+    const outputDir = path.join(__dirname, "outputs");
+
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const filePath = path.join(outputDir, `output-${Date.now()}.mp3`);
-    await streamPipeline(
-      elevenLabsResponse.body,
-      fs.createWriteStream(filePath)
-    );
+    let i = 1;
+    let speechFile;
+
+    // Find the next available filename by incrementing the number
+    while (true) {
+      const paddedIndex = i.toString().padStart(2, "0");
+      speechFile = path.join(outputDir, `speech-${paddedIndex}.mp3`);
+      if (!fs.existsSync(speechFile)) {
+        break;
+      }
+      i++;
+    }
+
+    await fs.promises.writeFile(speechFile, response.audioContent, "binary");
+    console.log(`Audio content written to file: ${speechFile}`);
 
     res.json({
-      message: 'Audio generated successfully.',
-      filePath: filePath
+      message: "Audio generated successfully.",
+      filePath: speechFile,
     });
   } catch (error) {
     console.error('Error in /api/generate:', error);

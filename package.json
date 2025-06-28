@@ -12,6 +12,7 @@
   "type": "module",
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.4.1",
+    "@google-cloud/text-to-speech": "^6.1.0",
     "@google/genai": "^1.7.0",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
