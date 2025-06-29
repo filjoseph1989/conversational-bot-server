@@ -44,11 +44,11 @@ To get a local copy up and running, follow these simple steps.
 
 1.  Clone the repo
     ```sh
-    git clone <your-backend-repo-url>
+    git clone https://github.com/filjoseph1989/conversational-bot-server
     ```
 2.  Navigate to the project directory
     ```sh
-    cd <your-project-directory>
+    cd conversational-bot-server
     ```
 3.  Install NPM packages
     ```sh
@@ -56,7 +56,9 @@ To get a local copy up and running, follow these simple steps.
     ```
 4.  Create a `.env` file in the root of your project and add your Google API key:
     ```
-    GOOGLE_API_KEY="YOUR_API_KEY_HERE"
+    GEMINI_API_KEY="API_KEY_HERE"
+    GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/backend/creds.json
+    CLIENT=http://localhost:5173
     ```
 5.  Start the development server
     ```sh
@@ -90,6 +92,6 @@ Once the application is running, the server will be listening for requests (typi
     ```json
     {
       "text": "Ah, black holes! The universe's ultimate mystery boxes. Imagine something so massive that not even light, the fastest thing we know, can escape its grasp. That's a black hole for you.",
-      "audio": "<audio_data_here>"
+      "audioContent": "<audio_data_here>"
     }
     ```
