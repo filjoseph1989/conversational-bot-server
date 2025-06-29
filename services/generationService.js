@@ -34,7 +34,11 @@ async function synthesizeSpeech(text) {
     console.log("Generating speech from text using Google Cloud TTS...");
     const request = {
         input: { text: text },
-        voice: { languageCode: "en-US", ssmlGender: "NEUTRAL" },
+        voice: {
+            languageCode: "en-GB",
+            name: "en-GB-Wavenet-A",
+            ssmlGender: "FEMALE"
+        },
         audioConfig: { audioEncoding: "MP3" },
     };
 
